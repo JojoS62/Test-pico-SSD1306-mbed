@@ -34,7 +34,6 @@ class Bouncer : public DrawBase {
       };
 
     virtual void draw() {
-      disp.drawFastVLine(pos, 0, SCREEN_HEIGHT, SSD1306_BLACK);
       pos += dir;
 
       if (dir > 0) {
@@ -69,10 +68,14 @@ void gui_thread_fn() {
   drawlist.push_back(new Bouncer(display, SCREEN_WIDTH-1, -3));
   
   while(1) {
+    testPin = 1;
+    display.clearDisplay();
+  
     // draw all objects
     for(auto obj : drawlist) {
       (*obj).draw();
     }
+    testPin = 0;
 
     testPin = 1;
     display.display();
