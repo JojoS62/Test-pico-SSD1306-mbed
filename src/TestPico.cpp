@@ -12,7 +12,7 @@ using namespace std::chrono_literals;
 #define OLED_RESET     3 // Reset pin # (or -1 if sharing Arduino reset pin)
 #define SCREEN_ADDRESS 0x3C ///< See datasheet for Address; 0x3D for 128x64, 0x3C for 128x32
 
-Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1, 1000000UL);
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1, 400000UL);
 
 Thread gui_thread;
 DigitalOut testPin(p3);
@@ -25,28 +25,22 @@ class Bouncer {
         dir = startDir;
       };
 
-    void step() {
+    void draw() {
+      disp.drawFastVLine(pos, 0, SCREEN_HEIGHT, SSD1306_BLACK);
       pos += dir;
 
-      if (dir == 1) {
-        if (pos < SCREEN_WIDTH) {
-          display.drawFastVLine(pos, 0, SCREEN_HEIGHT, SSD1306_WHITE);
-          display.drawFastVLine(pos-1, 0, SCREEN_HEIGHT, SSD1306_BLACK);
-        } else {  // pos is end
-          display.drawFastVLine(pos, 0, SCREEN_HEIGHT, SSD1306_BLACK);
-          display.drawFastVLine(pos-1, 0, SCREEN_HEIGHT, SSD1306_WHITE);
-          dir = -1;
+      if (dir > 0) {
+        if (pos >= SCREEN_WIDTH) {
+          pos = SCREEN_WIDTH-1;   // limit to max
+          dir *= -1;
         }
       } else {
-        if (pos > 0) {
-          display.drawFastVLine(pos, 0, SCREEN_HEIGHT, SSD1306_WHITE);
-          display.drawFastVLine(pos+1, 0, SCREEN_HEIGHT, SSD1306_BLACK);
-        } else {  // pos is end
-          display.drawFastVLine(pos, 0, SCREEN_HEIGHT, SSD1306_BLACK);
-          display.drawFastVLine(pos+1, 0, SCREEN_HEIGHT, SSD1306_WHITE);
-          dir = 1;
+        if (pos <= 0) {
+          pos = 0;
+          dir *= -1;
         }
       }
+      disp.drawFastVLine(pos, 0, SCREEN_HEIGHT, SSD1306_WHITE);
     }; 
 
   private:
@@ -58,10 +52,18 @@ class Bouncer {
 void gui_function() {
   Bouncer b1(display, 0, 1);
   Bouncer b2(display, SCREEN_WIDTH-1, -1);
+  Bouncer b3(display, 0, 2);
+  Bouncer b4(display, SCREEN_WIDTH-1, -2);
+  Bouncer b5(display, 0, 3);
+  Bouncer b6(display, SCREEN_WIDTH-1, -3);
 
   while(1) {
-    b1.step();
-    b2.step();
+    b1.draw();
+    b2.draw();
+    b3.draw();
+    b4.draw();
+    b5.draw();
+    b6.draw();
 
     testPin = 1;
     display.display();
