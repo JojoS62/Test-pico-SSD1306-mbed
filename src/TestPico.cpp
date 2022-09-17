@@ -2,10 +2,12 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 #include <mbed.h>
+#include <vector>
 
 using namespace mbed;
 using namespace rtos;
 using namespace std::chrono_literals;
+using namespace std;
 
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
 #define SCREEN_HEIGHT 64 // OLED display height, in pixels
@@ -17,7 +19,13 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1, 400000UL);
 Thread gui_thread;
 DigitalOut testPin(p3);
 
-class Bouncer {
+class DrawBase {
+public:
+  //DrawBase() = delete;
+  virtual void draw() = 0;
+};
+
+class Bouncer : public DrawBase {
   public:
     Bouncer(Adafruit_SSD1306 &disp, int startPos, int startDir) :
       disp(disp) {
@@ -25,7 +33,7 @@ class Bouncer {
         dir = startDir;
       };
 
-    void draw() {
+    virtual void draw() {
       disp.drawFastVLine(pos, 0, SCREEN_HEIGHT, SSD1306_BLACK);
       pos += dir;
 
@@ -49,21 +57,22 @@ class Bouncer {
     int dir;
 };
 
-void gui_function() {
-  Bouncer b1(display, 0, 1);
-  Bouncer b2(display, SCREEN_WIDTH-1, -1);
-  Bouncer b3(display, 0, 2);
-  Bouncer b4(display, SCREEN_WIDTH-1, -2);
-  Bouncer b5(display, 0, 3);
-  Bouncer b6(display, SCREEN_WIDTH-1, -3);
+void gui_thread_fn() {
+  vector<DrawBase*> drawlist;     // list for draw objects
 
+  // add some objects
+  drawlist.push_back(new Bouncer(display, 0, 1));
+  drawlist.push_back(new Bouncer(display, SCREEN_WIDTH-1, -1));
+  drawlist.push_back(new Bouncer(display, 0, 2));
+  drawlist.push_back(new Bouncer(display, SCREEN_WIDTH-1, -2));
+  drawlist.push_back(new Bouncer(display, 0, 3));
+  drawlist.push_back(new Bouncer(display, SCREEN_WIDTH-1, -3));
+  
   while(1) {
-    b1.draw();
-    b2.draw();
-    b3.draw();
-    b4.draw();
-    b5.draw();
-    b6.draw();
+    // draw all objects
+    for(auto obj : drawlist) {
+      (*obj).draw();
+    }
 
     testPin = 1;
     display.display();
@@ -86,7 +95,7 @@ void setup() {
   // Clear the buffer
   display.clearDisplay();
 
-  gui_thread.start(gui_function);
+  gui_thread.start(gui_thread_fn);
 }
 
 void loop() {
