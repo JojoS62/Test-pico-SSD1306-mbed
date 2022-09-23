@@ -101,7 +101,9 @@ void setup() {
   gui_thread.start(gui_thread_fn);
 }
 
+DigitalOut  led(LED1);
+
 void loop() {
-  Serial.println(F("Hello from Pico with Mbed"));
-  delay(2000);
+  led = !led;
+  delay(500);
 }
