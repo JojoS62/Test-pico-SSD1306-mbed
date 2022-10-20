@@ -21,6 +21,8 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1, 2400000UL);
 
 Thread io_thread;
 Thread gui_thread;
+Thread event_thread;
+events::EventQueue queue;
 
 class DrawBase {
 public:
@@ -128,6 +130,7 @@ void setup() {
 
   gui_thread.start(gui_thread_fn);
   io_thread.start(io_thread_fn);
+  event_thread.start(callback(&queue, &events::EventQueue::dispatch_forever));
 }
 
 DigitalOut  led(LED1);
