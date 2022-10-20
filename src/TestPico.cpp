@@ -1,6 +1,9 @@
 #include <Wire.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
+#include <Fonts/FreeSerifItalic18pt7b.h>
+#include "myFont.h"
+
 #include <mbed.h>
 #include <vector>
 
@@ -16,8 +19,8 @@ using namespace std;
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1, 2400000UL);
 
+Thread io_thread;
 Thread gui_thread;
-DigitalOut testPin(p3);
 
 class DrawBase {
 public:
@@ -57,6 +60,9 @@ class Bouncer : public DrawBase {
 };
 
 void gui_thread_fn() {
+ // setup
+
+  DigitalOut testPin(p3);
   vector<DrawBase*> drawlist;     // list for draw objects
 
   // add some objects
@@ -66,21 +72,43 @@ void gui_thread_fn() {
   drawlist.push_back(new Bouncer(display, SCREEN_WIDTH-1, -2));
   drawlist.push_back(new Bouncer(display, 0, 3));
   drawlist.push_back(new Bouncer(display, SCREEN_WIDTH-1, -3));
-  
+
+  display.clearDisplay();
+  display.setFont(&Dialog_plain_16);
+  display.setTextColor(SSD1306_WHITE);
+  display.setCursor(0, 32);
+//  display.println("hello");
+  display.print("1ÄÖÜäöü2");
+  display.display();
+
+  // loop  
   while(1) {
     testPin = 1;
-    display.clearDisplay();
   
-    // draw all objects
-    for(auto obj : drawlist) {
-      (*obj).draw();
-    }
+    // // draw all objects
+    // for(auto obj : drawlist) {
+    //   (*obj).draw();
+    // }
+    // testPin = 0;
+
+    // testPin = 1;
+
+
     testPin = 0;
 
-    testPin = 1;
-    display.display();
-    testPin = 0;
+    ThisThread::sleep_for(1000ms);
  }
+}
+
+void io_thread_fn() {
+  // setup
+  DigitalOut  led(p6);
+
+  // loop
+  while(true) {
+    led = !led;
+    ThisThread::sleep_for(100ms);
+  }
 }
 
 void setup() {
@@ -99,6 +127,7 @@ void setup() {
   display.clearDisplay();
 
   gui_thread.start(gui_thread_fn);
+  io_thread.start(io_thread_fn);
 }
 
 DigitalOut  led(LED1);
