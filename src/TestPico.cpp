@@ -25,7 +25,11 @@ float dsTemp_1;
 
 Thread io_thread;
 Thread gui_thread;
+Thread event_thread;
+events::EventQueue queue;
+DigitalOut relais(p10);
 
+enum  PowerState : int { on = 0, off = 1};
 class DrawBase {
 public:
   //DrawBase() = delete;
@@ -133,6 +137,13 @@ void setup() {
 
   gui_thread.start(gui_thread_fn);
   io_thread.start(io_thread_fn);
+  event_thread.start(callback(&queue, &events::EventQueue::dispatch_forever));
+
+  relais = PowerState::on;
+  queue.call_in(2s, [](){ 
+        relais = PowerState::off;
+      }
+    );
 }
 
 DigitalOut  led(LED1);
