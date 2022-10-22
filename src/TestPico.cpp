@@ -19,7 +19,7 @@ using namespace std;
 #define SCREEN_ADDRESS 0x3C ///< See datasheet for Address; 0x3D for 128x64, 0x3C for 128x32
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1, 1200000UL);
-DS1820 probe(p2);
+DS1820 probe(p15);
 float dsTemp_1;
 
 
@@ -153,7 +153,8 @@ void loop() {
 
   dsTemp_1 = probe.temperature();
   printf("It is %3.1foC\r\n", dsTemp_1);
+  Serial.println(dsTemp_1);
 
   led = !led;
-  delay(500);
+  delay(2000);
 }
