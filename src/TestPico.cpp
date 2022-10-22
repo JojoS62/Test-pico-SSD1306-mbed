@@ -1,11 +1,12 @@
+#include <mbed.h>
+#include <vector>
+
 #include <Wire.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 #include <Fonts/FreeSerifItalic18pt7b.h>
 #include "myFont.h"
-
-#include <mbed.h>
-#include <vector>
+#include "DS1820.h"
 
 using namespace mbed;
 using namespace rtos;
@@ -17,7 +18,10 @@ using namespace std;
 #define OLED_RESET     3 // Reset pin # (or -1 if sharing Arduino reset pin)
 #define SCREEN_ADDRESS 0x3C ///< See datasheet for Address; 0x3D for 128x64, 0x3C for 128x32
 
-Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1, 2400000UL);
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1, 1200000UL);
+DS1820 probe(p2);
+float dsTemp_1;
+
 
 Thread io_thread;
 Thread gui_thread;
@@ -76,10 +80,6 @@ void gui_thread_fn() {
   display.clearDisplay();
   display.setFont(&Dialog_plain_16);
   display.setTextColor(SSD1306_WHITE);
-  display.setCursor(0, 32);
-//  display.println("hello");
-  display.print("1ÄÖÜäöü2");
-  display.display();
 
   // loop  
   while(1) {
@@ -92,6 +92,11 @@ void gui_thread_fn() {
     // testPin = 0;
 
     // testPin = 1;
+    
+    display.clearDisplay();
+    display.setCursor(0, 32);
+    display.print(dsTemp_1);
+    display.display();
 
 
     testPin = 0;
@@ -133,6 +138,11 @@ void setup() {
 DigitalOut  led(LED1);
 
 void loop() {
+  probe.convertTemperature(true, DS1820::all_devices);         //Start temperature conversion, wait until ready
+
+  dsTemp_1 = probe.temperature();
+  printf("It is %3.1foC\r\n", dsTemp_1);
+
   led = !led;
   delay(500);
 }
