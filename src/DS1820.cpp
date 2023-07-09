@@ -59,7 +59,7 @@ DS1820::DS1820 (PinName data_pin, PinName power_pin, bool power_polarity) : _dat
 
 DS1820::~DS1820 (void) {
     node *tmp;
-    for(int i=1; i<=probes.length(); i++)
+    for(uint32_t i=1; i<=probes.length(); i++)
     {
         tmp = probes.pop(i);
         if (tmp->data == this)

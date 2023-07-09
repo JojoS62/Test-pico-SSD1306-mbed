@@ -1,4 +1,7 @@
+#include <Arduino.h>
 #include <mbed.h>
+#include <pico/multicore.h> 
+
 #include <vector>
 
 #include <Wire.h>
@@ -19,7 +22,7 @@ using namespace std;
 #define SCREEN_ADDRESS 0x3C ///< See datasheet for Address; 0x3D for 128x64, 0x3C for 128x32
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1, 1200000UL);
-DS1820 probe(p15);
+// DS1820 probe(p15);
 float dsTemp_1;
 
 
@@ -28,8 +31,8 @@ Thread gui_thread;
 Thread event_thread;
 events::EventQueue queue;
 DigitalOut relais(p10);
-
 enum  PowerState : int { on = 0, off = 1};
+
 class DrawBase {
 public:
   //DrawBase() = delete;
@@ -120,19 +123,53 @@ void io_thread_fn() {
   }
 }
 
-void setup() {
-  Serial.begin(9600);
-  Serial.println(F("Hello from Pico"));
+uint8_t test_buffer[10*1024];
 
+mbed::SPI spi(SPI_MOSI, SPI_MISO, SPI_SCK);
+DigitalOut spi_ss(p20);
+
+void fillDisplay(){
+    for (uint32_t i = 0; i < sizeof(test_buffer); i++) {
+      test_buffer[i] = i;
+    }
+  
+    spi_ss = 0;
+    // spi.write((const char*) test_buffer, sizeof(test_buffer), (char*)test_buffer, sizeof(test_buffer));
+    //spi.write((const char*) test_buffer, sizeof(test_buffer), nullptr, 0);
+    spi_write_blocking(spi0, (const uint8_t*) test_buffer, sizeof(test_buffer));
+    spi_ss = 1;
+}
+
+uint32_t counter;
+
+void core1_worker() {
+  // DigitalOut  led(LED1);
+  counter++;
+
+  pinMode(LED_BUILTIN, OUTPUT);
+  while(true) {
+    digitalWrite(LED_BUILTIN, HIGH);   // turn the LED on (HIGH is the voltage level)
+    sleep_ms(1000);                  // wait for a second
+    digitalWrite(LED_BUILTIN, LOW);    // turn the LED off by making the voltage LOW
+    sleep_ms(1000);
+
+    counter++;
+    dsTemp_1 += 1.0f;
+  }
+}
+
+void setup() {
+  Serial1.begin(115200);
+  Serial1.println(F("Hello from Pico"));
+  
   Wire.setClock(10000L);
 
   // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
   if (!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS, OLED_RESET)) {
-    Serial.println(F("SSD1306 allocation failed"));
+    Serial1.println(F("SSD1306 allocation failed"));
     for (;;); // Don't proceed, loop forever
   }
 
-  // Clear the buffer
   display.clearDisplay();
 
   gui_thread.start(gui_thread_fn);
@@ -144,17 +181,28 @@ void setup() {
         relais = PowerState::off;
       }
     );
-}
 
-DigitalOut  led(LED1);
+  spi.frequency(62'500'000);
+
+  sleep_ms(500);
+
+  multicore_reset_core1();
+  multicore_launch_core1(core1_worker);
+}
 
 void loop() {
-  probe.convertTemperature(true, DS1820::all_devices);         //Start temperature conversion, wait until ready
+  // probe.convertTemperature(true, DS1820::all_devices);         //Start temperature conversion, wait until ready
 
-  dsTemp_1 = probe.temperature();
-  printf("It is %3.1foC\r\n", dsTemp_1);
-  Serial.println(dsTemp_1);
+  // dsTemp_1 = probe.temperature();
+  // printf("It is %3.1foC\r\n", dsTemp_1);
+  // Serial.println(dsTemp_1);
+    printf("test %d\r\n", counter);
 
-  led = !led;
-  delay(2000);
+    // fillDisplay();
+
+    // led = !led;
+    delay(2000);
+
 }
+
+
